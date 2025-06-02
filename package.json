@@ -1,0 +1,38 @@
+{
+  "name": "kazasu",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "axios": "^1.6.0",
+    "googleapis": "^149.0.0",
+    "html5-qrcode": "^2.3.8",
+    "next": "^14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@google/clasp": "^3.0.6-alpha",
+    "@types/google-apps-script": "^1.0.97",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.47",
+    "@types/react-dom": "^18.2.18",
+    "autoprefixer": "^10.4.16",
+    "dotenv": "^16.5.0",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "^14.2.0",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.0"
+  },
+  "scripts": {
+    "deploy:gas": "NODE_NO_WARNINGS=1 clasp push",
+    "set-properties": "NODE_NO_WARNINGS=1 node set-script-properties.js",
+    "dev": "cd frontend && rm -rf .next && NODE_NO_WARNINGS=1 next dev",
+    "build": "cd frontend && NODE_NO_WARNINGS=1 next build",
+    "start": "cd frontend && next start",
+    "lint": "cd frontend && next lint"
+  },
+  "workspaces": [
+    "frontend"
+  ]
+}
