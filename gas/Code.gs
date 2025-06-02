@@ -1,25 +1,4 @@
-// OPTIONS メソッドのリクエストに対応するためのdoOptionsハンドラ
-function doOptions(e) {
-  var headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Max-Age': '86400'
-  };
-  
-  return ContentService.createTextOutput('')
-    .setMimeType(ContentService.MimeType.TEXT)
-    .setHeaders(headers);
-}
-
 function doPost(e) {
-  // CORSヘッダーを設定
-  var headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-  };
-
   // スプレッドシートIDとシート名をScript Propertiesから取得
   var scriptProperties = PropertiesService.getScriptProperties();
   var SPREADSHEET_ID = scriptProperties.getProperty('SPREADSHEET_ID');
@@ -43,7 +22,5 @@ function doPost(e) {
   }
 
   var result = found ? { status: "success" } : { status: "not found" };
-  return ContentService.createTextOutput(JSON.stringify(result))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeaders(headers);
+  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
