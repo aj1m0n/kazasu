@@ -5,8 +5,10 @@ import axios from 'axios';
 
 export default function Home() {
   const [scanResult, setScanResult] = useState('');
-  const [status, setStatus] = useState<'idle' | 'scanning' | 'success' | 'error' | 'not-found'>('idle');
+  const [status, setStatus] = useState<'idle' | 'scanning' | 'success' | 'error' | 'not-found' | 'processing' | 'confirm-goshugu'>('idle');
   const [message, setMessage] = useState('');
+  const [currentId, setCurrentId] = useState('');
+  const [isGoshugu, setIsGoshugu] = useState(false);
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   // Move the functions outside useEffect to avoid ES5 strict mode issues
@@ -46,17 +48,60 @@ export default function Home() {
     }
   }, [status]);
 
-  const processScannedData = async (id: string) => {
+  const processScannedData = async (id: string, receivedGoshugu?: boolean) => {
     try {
-      setStatus('idle');
+      setStatus('processing');
       setMessage(`処理中: ${id}`);
-
+      
+      // まずGETリクエストでisGoshuguを確認
+      if (receivedGoshugu === undefined) {
+        const checkResponse = await axios.get(`/api/gas-proxy?id=${encodeURIComponent(id)}`);
+        
+        if (checkResponse.data.status === 'success') {
+          const { isGoshugu } = checkResponse.data;
+          
+          // isGoshuguがtrueの場合は直接出席登録
+          if (isGoshugu) {
+            return processAttendance(id);
+          } else {
+            // isGoshuguがfalseの場合は確認UIを表示
+            setCurrentId(id);
+            setStatus('confirm-goshugu');
+            setMessage(`${id}さんはご祝儀未確認です。ご祝儀を受け取りましたか？`);
+            return;
+          }
+        } else if (checkResponse.data.status === 'not found') {
+          setStatus('not-found');
+          setMessage(`エラー: IDが見つかりませんでした (${id})`);
+          return;
+        } else {
+          throw new Error('予期しないレスポンス');
+        }
+      } else {
+        // receivedGoshuguが指定されている場合は直接出席登録
+        return processAttendance(id, receivedGoshugu);
+      }
+    } catch (error) {
+      setStatus('error');
+      setMessage(`サーバーエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+  
+  const processAttendance = async (id: string, receivedGoshugu?: boolean) => {
+    try {
+      setStatus('processing');
+      setMessage(`出席登録中: ${id}`);
+      
       // Next.js API route 経由でGASにリクエスト
-      const response = await axios.post('/api/gas-proxy', { id });
+      const response = await axios.post('/api/gas-proxy', { 
+        id,
+        receivedGoshugu // undefinedの場合は送信されない
+      });
       
       if (response.data.status === 'success') {
         setStatus('success');
-        setMessage(`成功: ${id} の情報を更新しました`);
+        setMessage(`成功: ${id} の出席が記録されました${receivedGoshugu !== undefined ? 
+          (receivedGoshugu ? '（ご祝儀あり）' : '（ご祝儀なし）') : ''}`);
       } else {
         setStatus('not-found');
         setMessage(`エラー: IDが見つかりませんでした (${id})`);
@@ -146,7 +191,42 @@ export default function Home() {
               status === 'not-found' ? 'bg-yellow-100 text-yellow-800' :
               'bg-blue-100 text-blue-800'
             }`}>
+              {status === 'processing' && <span className="spinner"></span>}
               {message}
+            </div>
+          )}
+          
+          {/* ご祝儀確認UI */}
+          {status === 'confirm-goshugu' && (
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-4 text-center">ご祝儀確認</h2>
+              <p className="text-center mb-6">{currentId}さんからご祝儀を受け取りましたか？</p>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => processScannedData(currentId, true)}
+                  className="flex-1 py-3 px-6 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all"
+                >
+                  はい（ご祝儀あり）
+                </button>
+                <button
+                  onClick={() => processScannedData(currentId, false)}
+                  className="flex-1 py-3 px-6 bg-orange-600 text-white font-semibold rounded-lg shadow-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all"
+                >
+                  いいえ（ご祝儀なし）
+                </button>
+              </div>
+              
+              <button
+                onClick={() => {
+                  setStatus('idle');
+                  setCurrentId('');
+                  setMessage('');
+                }}
+                className="w-full mt-4 py-2 px-4 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-all"
+              >
+                キャンセル
+              </button>
             </div>
           )}
           
