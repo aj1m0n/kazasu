@@ -148,6 +148,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
 
+        // 「席次表」の場合は何も処理せずに終了
+        if (message.text === '席次表') {
+          // 何も返信せずに正常終了
+          return res.status(200).json({ message: 'OK' });
+        }
+        
         // QRコードリクエストの処理
         if (message.text === 'QRコード' || message.text === 'qrcode' || message.text === 'QR') {
           try {
