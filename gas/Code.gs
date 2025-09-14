@@ -43,9 +43,17 @@ function doPost(e) {
   var scriptProperties = PropertiesService.getScriptProperties();
   var SPREADSHEET_ID = scriptProperties.getProperty('SPREADSHEET_ID');
   var SHEET_NAME = scriptProperties.getProperty('SHEET_NAME') || 'Sheet1';
+  var LINE_WEBHOOK_SHEET_NAME = scriptProperties.getProperty('LINE_WEBHOOK_SHEET_NAME') || 'LINE_Messages';
 
   // リクエストボディをパース
   var data = JSON.parse(e.postData.contents);
+  
+  // LINE webhookからのリクエストを処理
+  if (data.action === 'lineWebhook') {
+    return handleLineWebhook(data, SPREADSHEET_ID, LINE_WEBHOOK_SHEET_NAME);
+  }
+  
+  // 既存のkazasu処理
   var id = data.id;
   var receivedGoshugu = data.receivedGoshugu;
 
@@ -70,4 +78,45 @@ function doPost(e) {
 
   var result = found ? { status: "success" } : { status: "not found" };
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleLineWebhook(data, spreadsheetId, sheetName) {
+  try {
+    var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+    var sheet;
+    
+    // シートが存在しない場合は作成
+    try {
+      sheet = spreadsheet.getSheetByName(sheetName);
+    } catch (e) {
+      sheet = spreadsheet.insertSheet(sheetName);
+      // ヘッダーを追加
+      sheet.getRange(1, 1, 1, 5).setValues([['Timestamp', 'User ID', 'Display Name', 'Message', 'Date']]);
+      sheet.getRange(1, 1, 1, 5).setFontWeight('bold');
+    }
+    
+    // 新しい行にデータを追加
+    var timestamp = data.timestamp || new Date().toISOString();
+    var date = new Date(timestamp);
+    var formattedDate = Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+    
+    sheet.appendRow([
+      formattedDate,
+      data.userId || '',
+      data.displayName || '',
+      data.message || '',
+      date
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      message: 'Data saved to spreadsheet'
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
 }
