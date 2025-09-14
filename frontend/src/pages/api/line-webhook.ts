@@ -197,13 +197,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             await replyTextMessage(replyToken, 'QRコードの取得中にエラーが発生しました。もう一度お試しください。');
           }
         } else {
-          // 通常のメッセージ保存処理
+          // 通常のメッセージ保存処理（返信なし）
           try {
             await saveToSpreadsheet(userId, displayName, message.text);
-            await replyTextMessage(replyToken, 'メッセージを記録しました✅');
+            // 保存成功しても返信しない
           } catch (error) {
             console.error('Failed to save message:', error);
-            await replyTextMessage(replyToken, 'エラーが発生しました。もう一度お試しください。');
+            // エラーが発生しても返信しない
           }
         }
       }
