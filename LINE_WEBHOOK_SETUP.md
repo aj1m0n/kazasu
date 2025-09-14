@@ -99,3 +99,22 @@ vercel --prod
 ### レスポンス
 - 成功: `200 OK`
 - エラー: `401 Unauthorized` (署名不正), `500 Internal Server Error`
+
+## QRコード取得機能
+
+### 使い方
+LINE botに以下のいずれかのメッセージを送信:
+- `QRコード`
+- `qrcode`
+- `QR`
+
+### 動作
+1. LINE User IDでスプレッドシートの招待者リストを検索
+2. 該当する招待者のQRコード画像URLを取得
+3. QRコード画像をLINEで返信
+
+### スプレッドシート設定
+招待者管理シートに以下の列が必要:
+- `line_id`: LINE User ID
+- `QR_CODE` または `QR`: QRコード画像のURL
+- `名前` または `Name`: ゲスト名（オプション）

@@ -53,6 +53,11 @@ function doPost(e) {
     return handleLineWebhook(data, SPREADSHEET_ID, LINE_WEBHOOK_SHEET_NAME);
   }
   
+  // QRコード取得リクエストの処理
+  if (data.action === 'getQRCode') {
+    return getQRCodeByLineId(data, SPREADSHEET_ID, SHEET_NAME);
+  }
+  
   // 既存のkazasu処理
   var id = data.id;
   var receivedGoshugu = data.receivedGoshugu;
@@ -111,6 +116,95 @@ function handleLineWebhook(data, spreadsheetId, sheetName) {
     return ContentService.createTextOutput(JSON.stringify({
       status: 'success',
       message: 'Data saved to spreadsheet'
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// LINE IDで招待者を検索してQRコードURLを返す
+function getQRCodeByLineId(data, spreadsheetId, sheetName) {
+  try {
+    var lineId = data.lineId;
+    
+    if (!lineId) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'LINE ID is required'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var sheet = SpreadsheetApp.openById(spreadsheetId).getSheetByName(sheetName);
+    
+    // ヘッダー行を取得して列のインデックスを特定
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var lineIdColumn = -1;
+    var qrCodeColumn = -1;
+    var nameColumn = -1;
+    
+    // LINE ID列とQRコード列を探す（大文字小文字を無視）
+    for (var i = 0; i < headers.length; i++) {
+      var header = headers[i].toString().toLowerCase();
+      // line_id列を検索
+      if (header === 'line_id' || header === 'lineid' || header === 'lineユーザーid' || header === 'lineuserid') {
+        lineIdColumn = i + 1;
+      }
+      // QRコード列を検索（スペースやアンダースコアを無視）
+      var normalizedHeader = header.replace(/[\s_-]/g, '');
+      if (normalizedHeader === 'qrcode' || normalizedHeader === 'qr' || header.indexOf('qrコード') !== -1) {
+        qrCodeColumn = i + 1;
+      }
+      if (normalizedHeader === 'name' || header === '名前' || header === '氏名') {
+        nameColumn = i + 1;
+      }
+    }
+    
+    if (lineIdColumn === -1) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'LINE ID column not found in spreadsheet'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    if (qrCodeColumn === -1) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'QR Code column not found in spreadsheet'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // データを検索
+    var dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn());
+    var values = dataRange.getValues();
+    
+    for (var i = 0; i < values.length; i++) {
+      var rowLineId = values[i][lineIdColumn - 1];
+      if (rowLineId && rowLineId.toString() === lineId) {
+        var qrCodeUrl = values[i][qrCodeColumn - 1];
+        var guestName = nameColumn !== -1 ? values[i][nameColumn - 1] : '';
+        
+        if (qrCodeUrl) {
+          return ContentService.createTextOutput(JSON.stringify({
+            status: 'success',
+            qrCodeUrl: qrCodeUrl.toString(),
+            guestName: guestName.toString()
+          })).setMimeType(ContentService.MimeType.JSON);
+        } else {
+          return ContentService.createTextOutput(JSON.stringify({
+            status: 'error',
+            message: 'QR code not found for this LINE ID'
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'not_found',
+      message: 'No guest found with this LINE ID'
     })).setMimeType(ContentService.MimeType.JSON);
     
   } catch (error) {

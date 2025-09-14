@@ -17,7 +17,7 @@ function validateSignature(body: string, signature: string): boolean {
   return hash === signature;
 }
 
-async function replyMessage(replyToken: string, message: string) {
+async function replyMessage(replyToken: string, messages: any[]) {
   if (!LINE_CHANNEL_ACCESS_TOKEN) return;
   
   try {
@@ -25,12 +25,7 @@ async function replyMessage(replyToken: string, message: string) {
       'https://api.line.me/v2/bot/message/reply',
       {
         replyToken,
-        messages: [
-          {
-            type: 'text',
-            text: message,
-          },
-        ],
+        messages,
       },
       {
         headers: {
@@ -42,6 +37,18 @@ async function replyMessage(replyToken: string, message: string) {
   } catch (error) {
     console.error('Failed to send reply:', error);
   }
+}
+
+async function replyTextMessage(replyToken: string, text: string) {
+  return replyMessage(replyToken, [{ type: 'text', text }]);
+}
+
+async function replyImageMessage(replyToken: string, imageUrl: string, previewUrl?: string) {
+  return replyMessage(replyToken, [{
+    type: 'image',
+    originalContentUrl: imageUrl,
+    previewImageUrl: previewUrl || imageUrl
+  }]);
 }
 
 async function saveToSpreadsheet(userId: string, displayName: string, message: string) {
@@ -68,6 +75,31 @@ async function saveToSpreadsheet(userId: string, displayName: string, message: s
     return response.data;
   } catch (error) {
     console.error('Failed to save to spreadsheet:', error);
+    throw error;
+  }
+}
+
+async function getQRCodeFromSpreadsheet(userId: string) {
+  if (!GAS_URL) {
+    throw new Error('GAS_URL is not configured');
+  }
+
+  try {
+    const response = await axios.post(
+      GAS_URL,
+      {
+        action: 'getQRCode',
+        lineId: userId,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get QR code from spreadsheet:', error);
     throw error;
   }
 }
@@ -116,12 +148,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
 
-        try {
-          await saveToSpreadsheet(userId, displayName, message.text);
-          await replyMessage(replyToken, 'メッセージを記録しました✅');
-        } catch (error) {
-          console.error('Failed to save message:', error);
-          await replyMessage(replyToken, 'エラーが発生しました。もう一度お試しください。');
+        // QRコードリクエストの処理
+        if (message.text === 'QRコード' || message.text === 'qrcode' || message.text === 'QR') {
+          try {
+            const qrData = await getQRCodeFromSpreadsheet(userId);
+            
+            if (qrData.status === 'success') {
+              const messages = [];
+              
+              // ゲスト名がある場合はテキストメッセージを追加
+              if (qrData.guestName) {
+                messages.push({
+                  type: 'text',
+                  text: `${qrData.guestName}様のQRコードです📱`
+                });
+              }
+              
+              // QRコード画像を追加
+              messages.push({
+                type: 'image',
+                originalContentUrl: qrData.qrCodeUrl,
+                previewImageUrl: qrData.qrCodeUrl
+              });
+              
+              await replyMessage(replyToken, messages);
+            } else if (qrData.status === 'not_found') {
+              await replyTextMessage(replyToken, 'QRコードが見つかりませんでした。\nLINE IDが登録されていない可能性があります。');
+            } else {
+              await replyTextMessage(replyToken, 'QRコードの取得中にエラーが発生しました。');
+            }
+          } catch (error) {
+            console.error('Failed to get QR code:', error);
+            await replyTextMessage(replyToken, 'QRコードの取得中にエラーが発生しました。もう一度お試しください。');
+          }
+        } else {
+          // 通常のメッセージ保存処理
+          try {
+            await saveToSpreadsheet(userId, displayName, message.text);
+            await replyTextMessage(replyToken, 'メッセージを記録しました✅');
+          } catch (error) {
+            console.error('Failed to save message:', error);
+            await replyTextMessage(replyToken, 'エラーが発生しました。もう一度お試しください。');
+          }
         }
       }
     }
