@@ -184,19 +184,99 @@ function getQRCodeByLineId(data, spreadsheetId, sheetName) {
     for (var i = 0; i < values.length; i++) {
       var rowLineId = values[i][lineIdColumn - 1];
       if (rowLineId && rowLineId.toString() === lineId) {
-        var qrCodeUrl = values[i][qrCodeColumn - 1];
+        var cellValue = values[i][qrCodeColumn - 1];
         var guestName = nameColumn !== -1 ? values[i][nameColumn - 1] : '';
+        
+        // セル内画像の場合、URLを抽出
+        var qrCodeUrl = '';
+        if (cellValue) {
+          // CellImageの場合、実際の画像URLを取得
+          if (cellValue.toString() === 'CellImage' || cellValue instanceof Object) {
+            // セル内の画像を処理
+            var cell = sheet.getRange(i + 2, qrCodeColumn);
+            var formula = cell.getFormula();
+            
+            // =IMAGE()形式の場合
+            if (formula && formula.indexOf('IMAGE') !== -1) {
+              // 動的URLの場合（例: =IMAGE("https://quickchart.io/qr?size=150x150&text=" & ENCODEURL(H2))）
+              if (formula.indexOf('&') !== -1 || formula.indexOf('ENCODEURL') !== -1) {
+                // 数式を評価して実際のURLを取得
+                try {
+                  // 数式内の参照を解決
+                  if (formula.indexOf('ENCODEURL') !== -1) {
+                    // ENCODEURLの参照セルを取得
+                    var cellRefMatch = formula.match(/ENCODEURL\(([A-Z]+\d+)\)/);
+                    if (cellRefMatch && cellRefMatch[1]) {
+                      var refCell = cellRefMatch[1];
+                      var refCol = refCell.match(/[A-Z]+/)[0];
+                      var refRow = parseInt(refCell.match(/\d+/)[0]);
+                      
+                      // 参照セルの値を取得（現在の行と同じ行の場合が多い）
+                      if (refRow === 2) {
+                        // 相対参照の場合、現在の行に合わせる
+                        refRow = i + 2;
+                      }
+                      
+                      var refColNum = columnLetterToNumber(refCol);
+                      var refValue = sheet.getRange(refRow, refColNum).getValue();
+                      
+                      // URLを構築
+                      var baseUrl = formula.match(/"([^"&]+)"/)[1];
+                      qrCodeUrl = baseUrl + encodeURIComponent(refValue.toString());
+                    }
+                  } else {
+                    // 静的なIMAGE関数の場合
+                    var urlMatch = formula.match(/IMAGE\("([^"]+)"/i);
+                    if (urlMatch && urlMatch[1]) {
+                      qrCodeUrl = urlMatch[1];
+                    }
+                  }
+                } catch (e) {
+                  console.error('Error parsing formula:', e);
+                }
+              } else {
+                // 静的なIMAGE関数の場合
+                var urlMatch = formula.match(/IMAGE\("([^"]+)"/i);
+                if (urlMatch && urlMatch[1]) {
+                  qrCodeUrl = urlMatch[1];
+                }
+              }
+            }
+            
+            // URLが直接入力されている場合
+            if (!qrCodeUrl && cellValue.toString().indexOf('http') === 0) {
+              qrCodeUrl = cellValue.toString();
+            }
+            
+            // 画像URLが取得できなかった場合、H列の値から直接QRコードURLを生成
+            if (!qrCodeUrl) {
+              // H列の値を取得（ID列）
+              var idValue = values[i][7]; // H列は8番目（0ベース）
+              if (idValue) {
+                qrCodeUrl = 'https://quickchart.io/qr?size=150x150&text=' + encodeURIComponent(idValue.toString());
+              } else {
+                return ContentService.createTextOutput(JSON.stringify({
+                  status: 'error',
+                  message: 'QR code URL could not be generated.'
+                })).setMimeType(ContentService.MimeType.JSON);
+              }
+            }
+          } else if (cellValue.toString().indexOf('http') === 0) {
+            // 直接URLが入力されている場合
+            qrCodeUrl = cellValue.toString();
+          }
+        }
         
         if (qrCodeUrl) {
           return ContentService.createTextOutput(JSON.stringify({
             status: 'success',
-            qrCodeUrl: qrCodeUrl.toString(),
+            qrCodeUrl: qrCodeUrl,
             guestName: guestName.toString()
           })).setMimeType(ContentService.MimeType.JSON);
         } else {
           return ContentService.createTextOutput(JSON.stringify({
             status: 'error',
-            message: 'QR code not found for this LINE ID'
+            message: 'QR code URL not found for this LINE ID'
           })).setMimeType(ContentService.MimeType.JSON);
         }
       }
@@ -213,4 +293,14 @@ function getQRCodeByLineId(data, spreadsheetId, sheetName) {
       message: error.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// 列文字を列番号に変換するヘルパー関数
+function columnLetterToNumber(letter) {
+  var column = 0;
+  var length = letter.length;
+  for (var i = 0; i < length; i++) {
+    column += (letter.charCodeAt(i) - 64) * Math.pow(26, length - i - 1);
+  }
+  return column;
 }

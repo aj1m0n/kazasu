@@ -164,18 +164,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 });
               }
               
-              // QRコード画像を追加
-              messages.push({
-                type: 'image',
-                originalContentUrl: qrData.qrCodeUrl,
-                previewImageUrl: qrData.qrCodeUrl
-              });
+              // QRコード画像を追加（URLが有効か確認）
+              if (qrData.qrCodeUrl && qrData.qrCodeUrl.startsWith('http')) {
+                messages.push({
+                  type: 'image',
+                  originalContentUrl: qrData.qrCodeUrl,
+                  previewImageUrl: qrData.qrCodeUrl
+                });
+              } else {
+                messages.push({
+                  type: 'text',
+                  text: 'QRコード画像のURLが正しく取得できませんでした。\nスプレッドシートのQRコード列に画像URLを直接入力するか、=IMAGE("URL")形式で入力してください。'
+                });
+              }
               
               await replyMessage(replyToken, messages);
             } else if (qrData.status === 'not_found') {
               await replyTextMessage(replyToken, 'QRコードが見つかりませんでした。\nLINE IDが登録されていない可能性があります。');
+            } else if (qrData.message && qrData.message.includes('embedded in cell')) {
+              await replyTextMessage(replyToken, 'QRコード画像がセルに埋め込まれています。\nスプレッドシートのQRコード列に画像URLを直接入力するか、=IMAGE("URL")形式で入力してください。');
             } else {
-              await replyTextMessage(replyToken, 'QRコードの取得中にエラーが発生しました。');
+              await replyTextMessage(replyToken, `QRコードの取得中にエラーが発生しました。\n${qrData.message || ''}`);
             }
           } catch (error) {
             console.error('Failed to get QR code:', error);
