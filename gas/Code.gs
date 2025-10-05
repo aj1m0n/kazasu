@@ -146,6 +146,9 @@ function getQRCodeByLineId(data, spreadsheetId, sheetName) {
     var qrCodeColumn = -1;
     var nameColumn = -1;
     
+    // B列（2列目）を名前列として固定
+    nameColumn = 2;
+
     // LINE ID列とQRコード列を探す（大文字小文字を無視）
     for (var i = 0; i < headers.length; i++) {
       var header = headers[i].toString().toLowerCase();
@@ -157,9 +160,6 @@ function getQRCodeByLineId(data, spreadsheetId, sheetName) {
       var normalizedHeader = header.replace(/[\s_-]/g, '');
       if (normalizedHeader === 'qrcode' || normalizedHeader === 'qr' || header.indexOf('qrコード') !== -1) {
         qrCodeColumn = i + 1;
-      }
-      if (normalizedHeader === 'name' || header === '名前' || header === '氏名') {
-        nameColumn = i + 1;
       }
     }
     
