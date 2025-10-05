@@ -186,15 +186,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               
               await replyMessage(replyToken, messages);
             } else if (qrData.status === 'not_found') {
-              // TODO: 10/12以降は新しいメッセージを表示するよう変更
-              const currentDate = new Date();
-              const cutoffDate = new Date('2025-10-5T00:00:00');
-              // JSTで比較するため、現在時刻をJSTに変換
-              const jstOffset = 9 * 60; // JST is UTC+9
-              const currentJST = new Date(currentDate.getTime() + (currentDate.getTimezoneOffset() + jstOffset) * 60000);
-              const cutoffJST = new Date(cutoffDate.getTime() + (cutoffDate.getTimezoneOffset() + jstOffset) * 60000);
+              // 10/12以降は新しいメッセージを表示
+              const now = new Date();
+              // 現在時刻をJSTに変換 (UTC+9)
+              const jstNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+              const cutoffDate = new Date('2025-10-05T00:00:00');
 
-              if (currentJST >= cutoffJST) {
+              if (jstNow >= cutoffDate) {
                 await replyTextMessage(replyToken, '申し訳ございません。QRコードが登録されていないので受付にてお名前をお伝えください。');
               } else {
                 await replyTextMessage(replyToken, 'QRコードが見つかりませんでした。\nお手数おかけしますが、お名前をご記入ください。\n反映までに2日ほどお時間をいただきます。');
