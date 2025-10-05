@@ -166,7 +166,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               if (qrData.guestName) {
                 messages.push({
                   type: 'text',
-                  text: `${qrData.guestName}様のQRコードです📱`
+                  text: `${qrData.guestName}様の受付QRコードです✨`
                 });
               }
               
