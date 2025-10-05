@@ -67,7 +67,7 @@ export default function Home() {
             // isGoshuguがfalseの場合は確認UIを表示
             setCurrentId(id);
             setStatus('confirm-goshugu');
-            setMessage(`${id}さんはご祝儀未確認です。ご祝儀を受け取りましたか？`);
+            setMessage('');
             return;
           }
         } else if (checkResponse.data.status === 'not found') {
@@ -199,9 +199,8 @@ export default function Home() {
           {/* ご祝儀確認UI */}
           {status === 'confirm-goshugu' && (
             <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4 text-center">ご祝儀確認</h2>
-              <p className="text-center mb-6">{currentId}さんからご祝儀を受け取りましたか？</p>
-              
+              <h2 className="text-xl font-semibold mb-6 text-center">ご祝儀確認</h2>
+
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={() => processScannedData(currentId, true)}
