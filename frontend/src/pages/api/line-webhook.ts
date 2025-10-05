@@ -195,7 +195,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               if (jstNow >= cutoffDate) {
                 await replyTextMessage(replyToken, '申し訳ございません。QRコードが登録されていないので披露宴前の受付にてお名前をお伝えください。');
               } else {
-                await replyTextMessage(replyToken, 'QRコードが見つかりませんでした。\nお手数おかけしますが、お名前をご記入ください。\n反映までに2日ほどお時間をいただきます。');
+                await replyTextMessage(replyToken, 'QRコードが見つかりませんでした。\nお手数おかけしますが、こちらのメッセージにお名前をご記入ください。\n反映までに2日ほどお時間をいただきます。');
               }
             } else if (qrData.message && qrData.message.includes('embedded in cell')) {
               await replyTextMessage(replyToken, 'QRコード画像がセルに埋め込まれています。\nスプレッドシートのQRコード列に画像URLを直接入力するか、=IMAGE("URL")形式で入力してください。');
