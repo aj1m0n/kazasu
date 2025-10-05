@@ -190,10 +190,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               const now = new Date();
               // 現在時刻をJSTに変換 (UTC+9)
               const jstNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
-              const cutoffDate = new Date('2025-10-05T00:00:00');
+              const cutoffDate = new Date('2025-10-12T00:00:00');
 
               if (jstNow >= cutoffDate) {
-                await replyTextMessage(replyToken, '申し訳ございません。QRコードが登録されていないので受付にてお名前をお伝えください。');
+                await replyTextMessage(replyToken, '申し訳ございません。QRコードが登録されていないので披露宴前の受付にてお名前をお伝えください。');
               } else {
                 await replyTextMessage(replyToken, 'QRコードが見つかりませんでした。\nお手数おかけしますが、お名前をご記入ください。\n反映までに2日ほどお時間をいただきます。');
               }
