@@ -186,6 +186,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               
               await replyMessage(replyToken, messages);
             } else if (qrData.status === 'not_found') {
+              // QRコードが見つからなかった場合はスプレッドシートに記録
+              await saveToSpreadsheet(userId, displayName, message.text);
+
               // 10/12以降は新しいメッセージを表示
               const now = new Date();
               // 現在時刻をJSTに変換 (UTC+9)
