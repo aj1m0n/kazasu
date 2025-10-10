@@ -16,24 +16,30 @@ function doGet(e) {
   }
 
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
-  // H列からO列まで取得 (H=8, I=9, J=10, K=11, L=12, M=13, N=14, O=15 なので8列)
-  var values = sheet.getRange(2, 8, sheet.getLastRow() - 1, 8).getValues();
+  // B列からO列まで取得 (B=2から開始)
+  var dataStartCol = 2; // B列
+  var dataEndCol = 15; // O列
+  var numCols = dataEndCol - dataStartCol + 1; // 14列
+  var values = sheet.getRange(2, dataStartCol, sheet.getLastRow() - 1, numCols).getValues();
 
   var found = false;
   var isGoshugu = false;
   var needsOkurumadai = false;
+  var guestName = '';
 
   for (var i = 0; i < values.length; i++) {
-    if (values[i][0] === id) { // H列（配列の0番目）の値とIDを比較
-      isGoshugu = values[i][3] === true; // K列（配列の3番目）の値を確認
-      needsOkurumadai = values[i][7] === true; // O列（配列の7番目）の値を確認
+    // H列はB列から数えて7番目（配列では6）
+    if (values[i][6] === id) { // H列の値とIDを比較
+      guestName = values[i][0]; // B列（配列の0番目）
+      isGoshugu = values[i][9] === true; // K列（配列の9番目）の値を確認
+      needsOkurumadai = values[i][13] === true; // O列（配列の13番目）の値を確認
       found = true;
       break;
     }
   }
 
   var result = found
-    ? { status: "success", isGoshugu: isGoshugu, needsOkurumadai: needsOkurumadai }
+    ? { status: "success", isGoshugu: isGoshugu, needsOkurumadai: needsOkurumadai, guestName: guestName }
     : { status: "not found" };
 
   return ContentService.createTextOutput(JSON.stringify(result))
@@ -71,8 +77,8 @@ function doPost(e) {
   var found = false;
   for (var i = 0; i < values.length; i++) {
     if (values[i][0] === id) {
-      // J列（10列目）にtrueを書き込む（出席登録）
-      sheet.getRange(i + 2, 10).setValue(true);
+      // L列（12列目）にtrueを書き込む（出席登録）
+      sheet.getRange(i + 2, 12).setValue(true);
 
       // receivedGoshuguが指定されている場合、K列（11列目）にも値を設定
       if (receivedGoshugu !== undefined) {

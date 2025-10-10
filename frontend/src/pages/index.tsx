@@ -8,6 +8,7 @@ export default function Home() {
   const [status, setStatus] = useState<'idle' | 'scanning' | 'success' | 'error' | 'not-found' | 'processing' | 'confirm-okurumadai'>('idle');
   const [message, setMessage] = useState('');
   const [currentId, setCurrentId] = useState('');
+  const [currentGuestName, setCurrentGuestName] = useState('');
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   // Move the functions outside useEffect to avoid ES5 strict mode issues
@@ -50,14 +51,15 @@ export default function Home() {
   const processScannedData = async (id: string, givenOkurumadai?: boolean) => {
     try {
       setStatus('processing');
-      setMessage(`処理中: ${id}`);
+      setMessage(`処理中...`);
 
-      // まずGETリクエストでお車代フラグを確認
+      // まずGETリクエストでお車代フラグとゲスト名を確認
       if (givenOkurumadai === undefined) {
         const checkResponse = await axios.get(`/api/gas-proxy?id=${encodeURIComponent(id)}`);
 
         if (checkResponse.data.status === 'success') {
-          const { needsOkurumadai } = checkResponse.data;
+          const { needsOkurumadai, guestName } = checkResponse.data;
+          setCurrentGuestName(guestName || id);
 
           // needsOkurumadaiがtrueの場合は確認UIを表示
           if (needsOkurumadai) {
@@ -67,7 +69,7 @@ export default function Home() {
             return;
           } else {
             // needsOkurumadaiがfalseの場合は直接出席登録
-            return processAttendance(id);
+            return processAttendance(id, undefined, guestName);
           }
         } else if (checkResponse.data.status === 'not found') {
           setStatus('not-found');
@@ -78,7 +80,7 @@ export default function Home() {
         }
       } else {
         // givenOkurumadaiが指定されている場合は直接出席登録
-        return processAttendance(id, givenOkurumadai);
+        return processAttendance(id, givenOkurumadai, currentGuestName);
       }
     } catch (error) {
       setStatus('error');
@@ -86,10 +88,11 @@ export default function Home() {
     }
   };
   
-  const processAttendance = async (id: string, givenOkurumadai?: boolean) => {
+  const processAttendance = async (id: string, givenOkurumadai?: boolean, guestName?: string) => {
     try {
       setStatus('processing');
-      setMessage(`出席登録中: ${id}`);
+      const displayName = guestName || id;
+      setMessage(`出席登録中: ${displayName}`);
 
       // Next.js API route 経由でGASにリクエスト
       const response = await axios.post('/api/gas-proxy', {
@@ -99,11 +102,11 @@ export default function Home() {
 
       if (response.data.status === 'success') {
         setStatus('success');
-        setMessage(`成功: ${id} の出席が記録されました${givenOkurumadai !== undefined ?
+        setMessage(`成功: ${displayName} の出席が記録されました${givenOkurumadai !== undefined ?
           (givenOkurumadai ? '（お車代渡し済み）' : '（お車代なし）') : ''}`);
       } else {
         setStatus('not-found');
-        setMessage(`エラー: IDが見つかりませんでした (${id})`);
+        setMessage(`エラー: IDが見つかりませんでした (${displayName})`);
       }
     } catch (error) {
       setStatus('error');
@@ -198,7 +201,8 @@ export default function Home() {
           {/* お車代確認UI */}
           {status === 'confirm-okurumadai' && (
             <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-6 text-center">お車代確認</h2>
+              <h2 className="text-xl font-semibold mb-2 text-center">お車代確認</h2>
+              <p className="text-center mb-6 text-lg font-medium">{currentGuestName}</p>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
