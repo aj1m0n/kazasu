@@ -26,11 +26,14 @@ function doGet(e) {
   var isGoshugu = false;
   var needsOkurumadai = false;
   var guestName = '';
+  var groupId = '';
+  var companions = [];
 
   for (var i = 0; i < values.length; i++) {
     // H列はB列から数えて7番目（配列では6）
     if (values[i][6] === id) { // H列の値とIDを比較
       guestName = values[i][0]; // B列（配列の0番目）
+      groupId = values[i][4]; // F列（配列の4番目）- グループID
       isGoshugu = values[i][9] === true; // K列（配列の9番目）の値を確認
       needsOkurumadai = values[i][13] === true; // O列（配列の13番目）の値を確認
       found = true;
@@ -38,8 +41,31 @@ function doGet(e) {
     }
   }
 
+  // 同じグループIDを持つ他のゲストを検索
+  if (found && groupId) {
+    for (var i = 0; i < values.length; i++) {
+      var currentGroupId = values[i][4]; // F列
+      var currentId = values[i][6]; // H列
+      var currentName = values[i][0]; // B列
+
+      // 同じグループで、スキャンした本人以外
+      if (currentGroupId === groupId && currentId !== id && currentName) {
+        companions.push({
+          id: currentId,
+          name: currentName
+        });
+      }
+    }
+  }
+
   var result = found
-    ? { status: "success", isGoshugu: isGoshugu, needsOkurumadai: needsOkurumadai, guestName: guestName }
+    ? {
+        status: "success",
+        isGoshugu: isGoshugu,
+        needsOkurumadai: needsOkurumadai,
+        guestName: guestName,
+        companions: companions
+      }
     : { status: "not found" };
 
   return ContentService.createTextOutput(JSON.stringify(result))
@@ -72,11 +98,21 @@ function doPost(e) {
   var givenOkurumadai = data.givenOkurumadai;
 
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
-  var values = sheet.getRange(2, 8, sheet.getLastRow() - 1, 1).getValues(); // 2行目以降のH列
+  // B列からO列まで取得してグループ情報も含める
+  var dataStartCol = 2; // B列
+  var dataEndCol = 15; // O列
+  var numCols = dataEndCol - dataStartCol + 1; // 14列
+  var values = sheet.getRange(2, dataStartCol, sheet.getLastRow() - 1, numCols).getValues();
 
   var found = false;
+  var groupId = '';
+  var companionIds = [];
+
   for (var i = 0; i < values.length; i++) {
-    if (values[i][0] === id) {
+    var currentId = values[i][6]; // H列（配列の6番目）
+    if (currentId === id) {
+      groupId = values[i][4]; // F列（配列の4番目）- グループID
+
       // L列（12列目）にtrueを書き込む（出席登録）
       sheet.getRange(i + 2, 12).setValue(true);
 
@@ -95,7 +131,24 @@ function doPost(e) {
     }
   }
 
-  var result = found ? { status: "success" } : { status: "not found" };
+  // 同じグループの他のゲストの参加フラグもTRUEにする
+  if (found && groupId) {
+    for (var i = 0; i < values.length; i++) {
+      var currentGroupId = values[i][4]; // F列
+      var currentId = values[i][6]; // H列
+
+      // 同じグループで、スキャンした本人以外
+      if (currentGroupId === groupId && currentId !== id && currentId) {
+        // L列（12列目）にtrueを書き込む（出席登録）
+        sheet.getRange(i + 2, 12).setValue(true);
+        companionIds.push(currentId);
+      }
+    }
+  }
+
+  var result = found
+    ? { status: "success", companionIds: companionIds }
+    : { status: "not found" };
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
 

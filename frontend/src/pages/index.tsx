@@ -9,6 +9,7 @@ export default function Home() {
   const [message, setMessage] = useState('');
   const [currentId, setCurrentId] = useState('');
   const [currentGuestName, setCurrentGuestName] = useState('');
+  const [companions, setCompanions] = useState<Array<{ id: string; name: string }>>([]);
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   // Move the functions outside useEffect to avoid ES5 strict mode issues
@@ -67,8 +68,9 @@ export default function Home() {
         const checkResponse = await axios.get(`/api/gas-proxy?id=${encodeURIComponent(id)}`);
 
         if (checkResponse.data.status === 'success') {
-          const { needsOkurumadai, guestName } = checkResponse.data;
+          const { needsOkurumadai, guestName, companions: companionsList } = checkResponse.data;
           setCurrentGuestName(guestName || id);
+          setCompanions(companionsList || []);
 
           // needsOkurumadaiがtrueの場合は確認UIを表示
           if (needsOkurumadai) {
@@ -111,8 +113,16 @@ export default function Home() {
 
       if (response.data.status === 'success') {
         setStatus('success');
-        setMessage(`成功: ${displayName} の出席が記録されました${givenOkurumadai !== undefined ?
-          (givenOkurumadai ? '（お車代渡し済み）' : '（お車代なし）') : ''}`);
+        let successMessage = `成功: ${displayName} の出席が記録されました${givenOkurumadai !== undefined ?
+          (givenOkurumadai ? '（お車代渡し済み）' : '（お車代なし）') : ''}`;
+
+        // お連れ様がいる場合は表示
+        if (companions.length > 0) {
+          const companionNames = companions.map(c => `${c.name}様`).join('、');
+          successMessage += `\n\nお連れ様: ${companionNames}`;
+        }
+
+        setMessage(successMessage);
       } else {
         setStatus('not-found');
         setMessage(`エラー: IDが見つかりませんでした (${displayName})`);
@@ -227,7 +237,14 @@ export default function Home() {
           {status === 'confirm-okurumadai' && (
             <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
               <h2 className="text-xl font-semibold mb-2 text-center">お車代確認</h2>
-              <p className="text-center mb-6 text-lg font-medium">{currentGuestName}様</p>
+              <p className="text-center mb-2 text-lg font-medium">{currentGuestName}様</p>
+
+              {companions.length > 0 && (
+                <div className="text-center mb-4 text-sm text-gray-600">
+                  <p className="font-medium">お連れ様:</p>
+                  <p>{companions.map(c => `${c.name}様`).join('、')}</p>
+                </div>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
