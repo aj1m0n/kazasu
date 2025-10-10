@@ -1,4 +1,4 @@
-// GET リクエストのハンドラ: IDでH列を検索しK列の値に基づいて isGoshugu を返す
+// GET リクエストのハンドラ: IDでH列を検索し、K列のisGoshuguとO列のお車代フラグを返す
 function doGet(e) {
   // スプレッドシートIDとシート名をScript Propertiesから取得
   var scriptProperties = PropertiesService.getScriptProperties();
@@ -7,7 +7,7 @@ function doGet(e) {
 
   // GETパラメーターからIDを取得
   var id = e.parameter.id;
-  
+
   if (!id) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
@@ -16,24 +16,26 @@ function doGet(e) {
   }
 
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
-  // H列からK列まで取得 (H=8, I=9, J=10, K=11 なので4列)
-  var values = sheet.getRange(2, 8, sheet.getLastRow() - 1, 4).getValues(); 
-  
+  // H列からO列まで取得 (H=8, I=9, J=10, K=11, L=12, M=13, N=14, O=15 なので8列)
+  var values = sheet.getRange(2, 8, sheet.getLastRow() - 1, 8).getValues();
+
   var found = false;
   var isGoshugu = false;
-  
+  var needsOkurumadai = false;
+
   for (var i = 0; i < values.length; i++) {
     if (values[i][0] === id) { // H列（配列の0番目）の値とIDを比較
       isGoshugu = values[i][3] === true; // K列（配列の3番目）の値を確認
+      needsOkurumadai = values[i][7] === true; // O列（配列の7番目）の値を確認
       found = true;
       break;
     }
   }
-  
-  var result = found 
-    ? { status: "success", isGoshugu: isGoshugu }
+
+  var result = found
+    ? { status: "success", isGoshugu: isGoshugu, needsOkurumadai: needsOkurumadai }
     : { status: "not found" };
-    
+
   return ContentService.createTextOutput(JSON.stringify(result))
     .setMimeType(ContentService.MimeType.JSON);
 }
@@ -61,6 +63,7 @@ function doPost(e) {
   // 既存のkazasu処理
   var id = data.id;
   var receivedGoshugu = data.receivedGoshugu;
+  var givenOkurumadai = data.givenOkurumadai;
 
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
   var values = sheet.getRange(2, 8, sheet.getLastRow() - 1, 1).getValues(); // 2行目以降のH列
@@ -70,12 +73,17 @@ function doPost(e) {
     if (values[i][0] === id) {
       // J列（10列目）にtrueを書き込む（出席登録）
       sheet.getRange(i + 2, 10).setValue(true);
-      
+
       // receivedGoshuguが指定されている場合、K列（11列目）にも値を設定
       if (receivedGoshugu !== undefined) {
         sheet.getRange(i + 2, 11).setValue(receivedGoshugu);
       }
-      
+
+      // givenOkurumadaiが指定されている場合、P列（16列目）にも値を設定
+      if (givenOkurumadai !== undefined) {
+        sheet.getRange(i + 2, 16).setValue(givenOkurumadai);
+      }
+
       found = true;
       break;
     }

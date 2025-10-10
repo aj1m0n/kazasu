@@ -5,8 +5,9 @@ import axios from 'axios';
 
 export default function Home() {
   const [scanResult, setScanResult] = useState('');
-  const [status, setStatus] = useState<'idle' | 'scanning' | 'success' | 'error' | 'not-found' | 'processing'>('idle');
+  const [status, setStatus] = useState<'idle' | 'scanning' | 'success' | 'error' | 'not-found' | 'processing' | 'confirm-okurumadai'>('idle');
   const [message, setMessage] = useState('');
+  const [currentId, setCurrentId] = useState('');
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   // Move the functions outside useEffect to avoid ES5 strict mode issues
@@ -46,32 +47,60 @@ export default function Home() {
     }
   }, [status]);
 
-  const processScannedData = async (id: string) => {
+  const processScannedData = async (id: string, givenOkurumadai?: boolean) => {
     try {
       setStatus('processing');
       setMessage(`処理中: ${id}`);
 
-      // 直接出席登録を実行
-      return processAttendance(id);
+      // まずGETリクエストでお車代フラグを確認
+      if (givenOkurumadai === undefined) {
+        const checkResponse = await axios.get(`/api/gas-proxy?id=${encodeURIComponent(id)}`);
+
+        if (checkResponse.data.status === 'success') {
+          const { needsOkurumadai } = checkResponse.data;
+
+          // needsOkurumadaiがtrueの場合は確認UIを表示
+          if (needsOkurumadai) {
+            setCurrentId(id);
+            setStatus('confirm-okurumadai');
+            setMessage('');
+            return;
+          } else {
+            // needsOkurumadaiがfalseの場合は直接出席登録
+            return processAttendance(id);
+          }
+        } else if (checkResponse.data.status === 'not found') {
+          setStatus('not-found');
+          setMessage(`エラー: IDが見つかりませんでした (${id})`);
+          return;
+        } else {
+          throw new Error('予期しないレスポンス');
+        }
+      } else {
+        // givenOkurumadaiが指定されている場合は直接出席登録
+        return processAttendance(id, givenOkurumadai);
+      }
     } catch (error) {
       setStatus('error');
       setMessage(`サーバーエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
   
-  const processAttendance = async (id: string) => {
+  const processAttendance = async (id: string, givenOkurumadai?: boolean) => {
     try {
       setStatus('processing');
       setMessage(`出席登録中: ${id}`);
 
       // Next.js API route 経由でGASにリクエスト
       const response = await axios.post('/api/gas-proxy', {
-        id
+        id,
+        givenOkurumadai // undefinedの場合は送信されない
       });
 
       if (response.data.status === 'success') {
         setStatus('success');
-        setMessage(`成功: ${id} の出席が記録されました`);
+        setMessage(`成功: ${id} の出席が記録されました${givenOkurumadai !== undefined ?
+          (givenOkurumadai ? '（お車代渡し済み）' : '（お車代なし）') : ''}`);
       } else {
         setStatus('not-found');
         setMessage(`エラー: IDが見つかりませんでした (${id})`);
@@ -163,6 +192,39 @@ export default function Home() {
             }`}>
               {status === 'processing' && <span className="spinner"></span>}
               {message}
+            </div>
+          )}
+
+          {/* お車代確認UI */}
+          {status === 'confirm-okurumadai' && (
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-6 text-center">お車代確認</h2>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => processScannedData(currentId, true)}
+                  className="flex-1 py-3 px-6 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all"
+                >
+                  渡した
+                </button>
+                <button
+                  onClick={() => processScannedData(currentId, false)}
+                  className="flex-1 py-3 px-6 bg-orange-600 text-white font-semibold rounded-lg shadow-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all"
+                >
+                  渡していない
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  setStatus('idle');
+                  setCurrentId('');
+                  setMessage('');
+                }}
+                className="w-full mt-4 py-2 px-4 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-all"
+              >
+                キャンセル
+              </button>
             </div>
           )}
 
