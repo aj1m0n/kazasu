@@ -16,10 +16,10 @@ function doGet(e) {
   }
 
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
-  // B列からO列まで取得 (B=2から開始)
+  // B列からQ列まで取得 (B=2から開始)
   var dataStartCol = 2; // B列
-  var dataEndCol = 15; // O列
-  var numCols = dataEndCol - dataStartCol + 1; // 14列
+  var dataEndCol = 17; // Q列
+  var numCols = dataEndCol - dataStartCol + 1; // 16列
   var values = sheet.getRange(2, dataStartCol, sheet.getLastRow() - 1, numCols).getValues();
 
   var found = false;
@@ -27,6 +27,7 @@ function doGet(e) {
   var needsOkurumadai = false;
   var guestName = '';
   var groupId = '';
+  var tableName = '';
   var companions = [];
 
   for (var i = 0; i < values.length; i++) {
@@ -36,6 +37,7 @@ function doGet(e) {
       groupId = values[i][4]; // F列（配列の4番目）- グループID
       isGoshugu = values[i][9] === true; // K列（配列の9番目）の値を確認
       needsOkurumadai = values[i][13] === true; // O列（配列の13番目）の値を確認
+      tableName = values[i][15]; // Q列（配列の15番目）- テーブル名
       found = true;
       break;
     }
@@ -64,6 +66,7 @@ function doGet(e) {
         isGoshugu: isGoshugu,
         needsOkurumadai: needsOkurumadai,
         guestName: guestName,
+        tableName: tableName,
         companions: companions
       }
     : { status: "not found" };
@@ -98,20 +101,22 @@ function doPost(e) {
   var givenOkurumadai = data.givenOkurumadai;
 
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
-  // B列からO列まで取得してグループ情報も含める
+  // B列からQ列まで取得してグループ情報とテーブル名も含める
   var dataStartCol = 2; // B列
-  var dataEndCol = 15; // O列
-  var numCols = dataEndCol - dataStartCol + 1; // 14列
+  var dataEndCol = 17; // Q列
+  var numCols = dataEndCol - dataStartCol + 1; // 16列
   var values = sheet.getRange(2, dataStartCol, sheet.getLastRow() - 1, numCols).getValues();
 
   var found = false;
   var groupId = '';
+  var tableName = '';
   var companionIds = [];
 
   for (var i = 0; i < values.length; i++) {
     var currentId = values[i][6]; // H列（配列の6番目）
     if (currentId === id) {
       groupId = values[i][4]; // F列（配列の4番目）- グループID
+      tableName = values[i][15]; // Q列（配列の15番目）- テーブル名
 
       // L列（12列目）にtrueを書き込む（出席登録）
       sheet.getRange(i + 2, 12).setValue(true);
@@ -147,7 +152,7 @@ function doPost(e) {
   }
 
   var result = found
-    ? { status: "success", companionIds: companionIds }
+    ? { status: "success", companionIds: companionIds, tableName: tableName }
     : { status: "not found" };
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }

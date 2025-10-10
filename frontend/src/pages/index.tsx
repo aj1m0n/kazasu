@@ -113,13 +113,20 @@ export default function Home() {
 
       if (response.data.status === 'success') {
         setStatus('success');
+        const tableName = response.data.tableName;
+
         let successMessage = `成功: ${displayName} の出席が記録されました${givenOkurumadai !== undefined ?
           (givenOkurumadai ? '（お車代渡し済み）' : '（お車代なし）') : ''}`;
+
+        // テーブル名がある場合は表示
+        if (tableName) {
+          successMessage += `\n\nテーブル: ${tableName}`;
+        }
 
         // お連れ様がいる場合は表示
         if (companions.length > 0) {
           const companionNames = companions.map(c => `${c.name}様`).join('、');
-          successMessage += `\n\nお連れ様: ${companionNames}`;
+          successMessage += `\nお連れ様: ${companionNames}`;
         }
 
         setMessage(successMessage);
