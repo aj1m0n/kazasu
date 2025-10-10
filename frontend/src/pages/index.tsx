@@ -30,13 +30,22 @@ export default function Home() {
     if (typeof window !== 'undefined' && status === 'scanning') {
       const scanner = new Html5QrcodeScanner(
         'reader',
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+          defaultZoomValueIfSupported: 2,
+          showTorchButtonIfSupported: true,
+          videoConstraints: {
+            facingMode: { ideal: "environment" } // 背面カメラを優先
+          }
+        },
         /* verbose= */ false
       );
 
       // Store the scanner reference so we can access it in onScanSuccess
       scannerRef.current = scanner;
-      
+
       scanner.render(onScanSuccess, onScanError);
 
       return () => {
@@ -59,7 +68,7 @@ export default function Home() {
 
         if (checkResponse.data.status === 'success') {
           const { needsOkurumadai, guestName } = checkResponse.data;
-          setCurrentGuestName(guestName || id);
+          setCurrentGuestName(guestName ? `${guestName}様` : id);
 
           // needsOkurumadaiがtrueの場合は確認UIを表示
           if (needsOkurumadai) {
@@ -91,7 +100,7 @@ export default function Home() {
   const processAttendance = async (id: string, givenOkurumadai?: boolean, guestName?: string) => {
     try {
       setStatus('processing');
-      const displayName = guestName || id;
+      const displayName = guestName ? `${guestName}様` : id;
       setMessage(`出席登録中: ${displayName}`);
 
       // Next.js API route 経由でGASにリクエスト
@@ -146,11 +155,11 @@ export default function Home() {
           
           {status !== 'scanning' && (
             <div className="mb-8">
-              <button 
+              <button
                 onClick={startScanning}
-                className="w-full py-3 px-6 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all mb-4"
+                className="w-full py-4 px-8 bg-blue-600 text-white text-lg font-bold rounded-lg shadow-lg hover:bg-blue-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all mb-4 transform hover:scale-105"
               >
-                QRコードをスキャンする
+                📷 QRコードをスキャン
               </button>
 
               <div className="bg-white rounded-lg p-4 shadow">
