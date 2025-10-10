@@ -68,7 +68,7 @@ export default function Home() {
 
         if (checkResponse.data.status === 'success') {
           const { needsOkurumadai, guestName } = checkResponse.data;
-          setCurrentGuestName(guestName ? `${guestName}様` : id);
+          setCurrentGuestName(guestName || id);
 
           // needsOkurumadaiがtrueの場合は確認UIを表示
           if (needsOkurumadai) {
@@ -227,7 +227,7 @@ export default function Home() {
           {status === 'confirm-okurumadai' && (
             <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
               <h2 className="text-xl font-semibold mb-2 text-center">お車代確認</h2>
-              <p className="text-center mb-6 text-lg font-medium">{currentGuestName}</p>
+              <p className="text-center mb-6 text-lg font-medium">{currentGuestName}様</p>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
