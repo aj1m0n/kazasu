@@ -185,12 +185,28 @@ export default function Home() {
           
           {status === 'scanning' && (
             <div className="mb-8">
-              <div id="reader" className="qr-reader border rounded-lg overflow-hidden"></div>
-              <button 
-                onClick={() => setStatus('idle')}
-                className="mt-4 w-full py-2 px-4 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-all"
+              {/* カメラ許可のガイダンス */}
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
+                <h3 className="text-lg font-bold text-blue-900 mb-2">📸 カメラの使用について</h3>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• 初回利用時はカメラへのアクセス許可が必要です</li>
+                  <li>• ブラウザの許可ダイアログで「許可」を選択してください</li>
+                  <li>• QRコードを枠内に収めるとスキャンされます</li>
+                </ul>
+              </div>
+
+              <div id="reader" className="qr-reader border-4 border-blue-400 rounded-lg overflow-hidden shadow-lg"></div>
+
+              <button
+                onClick={() => {
+                  if (scannerRef.current) {
+                    scannerRef.current.clear();
+                  }
+                  setStatus('idle');
+                }}
+                className="mt-4 w-full py-3 px-6 bg-red-500 text-white text-lg font-bold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition-all"
               >
-                キャンセル
+                ❌ スキャンを中止
               </button>
             </div>
           )}

@@ -17,3 +17,74 @@ body {
   max-width: 500px;
   margin: 0 auto;
 }
+
+/* html5-qrcode のボタンを日本語化・わかりやすくする */
+#html5-qrcode-button-camera-start::before {
+  content: "📷 カメラを起動";
+  font-size: 16px;
+  font-weight: bold;
+}
+
+#html5-qrcode-button-camera-start {
+  font-size: 0 !important;
+  background-color: #2563eb !important;
+  color: white !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  font-weight: bold !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s !important;
+}
+
+#html5-qrcode-button-camera-start:hover {
+  background-color: #1d4ed8 !important;
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+#html5-qrcode-button-camera-stop::before {
+  content: "⏸️ カメラを停止";
+  font-size: 16px;
+  font-weight: bold;
+}
+
+#html5-qrcode-button-camera-stop {
+  font-size: 0 !important;
+  background-color: #dc2626 !important;
+  color: white !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  font-weight: bold !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s !important;
+}
+
+#html5-qrcode-button-camera-stop:hover {
+  background-color: #b91c1c !important;
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* カメラ選択のラベルを日本語化 */
+#html5-qrcode-select-camera option {
+  font-size: 14px;
+}
+
+/* ファイル選択ボタンを非表示 */
+#html5-qrcode-button-file-selection {
+  display: none !important;
+}
+
+/* スキャナーのセレクトを大きく見やすく */
+#html5-qrcode-select-camera {
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  border: 2px solid #3b82f6 !important;
+  border-radius: 6px !important;
+  background-color: white !important;
+  margin-bottom: 12px !important;
+}
+
+/* スキャンリージョンのスタイル調整 */
+#html5-qrcode-anchor-scan-type-change {
+  color: #3b82f6 !important;
+  font-weight: 600 !important;
+}
