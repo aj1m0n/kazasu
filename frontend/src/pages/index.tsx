@@ -19,6 +19,9 @@ export default function Home() {
     }
     setScanResult(decodedText);
     setStatus('idle');
+    // 新しいスキャン時にお連れ様情報をリセット
+    setCompanions([]);
+    setCurrentGuestName('');
     processScannedData(decodedText);
   };
 
@@ -152,6 +155,9 @@ export default function Home() {
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (manualId.trim()) {
+      // 新しい入力時にお連れ様情報をリセット
+      setCompanions([]);
+      setCurrentGuestName('');
       processScannedData(manualId.trim());
       setManualId('');
     }
