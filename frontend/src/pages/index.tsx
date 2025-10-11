@@ -83,7 +83,7 @@ export default function Home() {
             return;
           } else {
             // needsOkurumadaiがfalseの場合は直接出席登録
-            return processAttendance(id, undefined, guestName);
+            return processAttendance(id, undefined, guestName, companionsList || []);
           }
         } else if (checkResponse.data.status === 'not found') {
           setStatus('not-found');
@@ -94,7 +94,7 @@ export default function Home() {
         }
       } else {
         // givenOkurumadaiが指定されている場合は直接出席登録
-        return processAttendance(id, givenOkurumadai, currentGuestName);
+        return processAttendance(id, givenOkurumadai, currentGuestName, companions);
       }
     } catch (error) {
       setStatus('error');
@@ -102,7 +102,12 @@ export default function Home() {
     }
   };
   
-  const processAttendance = async (id: string, givenOkurumadai?: boolean, guestName?: string) => {
+  const processAttendance = async (
+    id: string,
+    givenOkurumadai?: boolean,
+    guestName?: string,
+    companionsList?: Array<{ id: string; name: string }>
+  ) => {
     try {
       setStatus('processing');
       const displayName = guestName ? `${guestName}様` : id;
@@ -126,9 +131,10 @@ export default function Home() {
           successMessage += `\n\nテーブル: ${tableName}`;
         }
 
-        // お連れ様がいる場合は表示
-        if (companions.length > 0) {
-          const companionNames = companions.map(c => `${c.name}様`).join('、');
+        // お連れ様がいる場合は表示（引数で渡されたものを使用）
+        const companionsToShow = companionsList || [];
+        if (companionsToShow.length > 0) {
+          const companionNames = companionsToShow.map(c => `${c.name}様`).join('、');
           successMessage += `\nお連れ様: ${companionNames}`;
         }
 
