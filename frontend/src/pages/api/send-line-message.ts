@@ -8,7 +8,7 @@ async function pushMessage(userId: string, guestName: string, giftUrl?: string) 
     throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured');
   }
 
-  let messageText = `本日はご多用のところご参列いただき、誠にありがとうございます✨
+  let messageText = `本日はご多用のところご列席いただき、誠にありがとうございます✨
 
 ${guestName}様にひとつお願いがございます🙇
 
