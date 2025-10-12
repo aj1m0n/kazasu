@@ -8,10 +8,12 @@ async function pushMessage(userId: string, guestName: string, giftUrl?: string) 
     throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured');
   }
 
-  let messageText = `本日はご多用のところご参列いただき、誠にありがとうございます。
+  let messageText = `本日はご多用のところご参列いただき、誠にありがとうございます✨
 
-${guestName}様に、ひとつお願いがございます。
-受付にてお受け取りいただいたビーズのお花を、結婚証明書へ貼り付けていただけますと幸いです。
+${guestName}様にひとつお願いがございます🙇
+
+受付にてお受け取りいただいたビーズのお花を、結婚証明書へ貼り付けていただけますと幸いです🌷
+
 皆さまのお手を添えていただくことで、私たちの誓いがより一層特別なものとなります。
 
 また、ささやかではございますが、オンライン引き出物をご用意いたしました。`;
@@ -29,7 +31,7 @@ ${giftUrl}`;
 
   messageText += `
 
-どうぞ、美味しいお料理と余興をゆっくりとお楽しみくださいませ。`;
+どうぞ、美味しいお料理と余興をゆっくりとお楽しみくださいませ🤵👰`;
 
   try {
     await axios.post(
