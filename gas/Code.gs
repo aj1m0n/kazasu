@@ -101,15 +101,28 @@ function doPost(e) {
   var givenOkurumadai = data.givenOkurumadai;
 
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
-  // B列からQ列まで取得してグループ情報とテーブル名も含める
+  // B列からR列まで取得してLINE IDとURLも含める
   var dataStartCol = 2; // B列
-  var dataEndCol = 17; // Q列
-  var numCols = dataEndCol - dataStartCol + 1; // 16列
+  var dataEndCol = 18; // R列
+  var numCols = dataEndCol - dataStartCol + 1; // 17列
   var values = sheet.getRange(2, dataStartCol, sheet.getLastRow() - 1, numCols).getValues();
+
+  // ヘッダー行を取得してLINE ID列を探す
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var lineIdColumnIndex = -1;
+  for (var i = 0; i < headers.length; i++) {
+    var header = headers[i].toString().toLowerCase();
+    if (header === 'line_id' || header === 'lineid' || header === 'lineユーザーid' || header === 'lineuserid') {
+      lineIdColumnIndex = i;
+      break;
+    }
+  }
 
   var found = false;
   var groupId = '';
   var tableName = '';
+  var giftUrl = '';
+  var lineUserId = '';
   var companionIds = [];
 
   for (var i = 0; i < values.length; i++) {
@@ -117,6 +130,12 @@ function doPost(e) {
     if (currentId === id) {
       groupId = values[i][4]; // F列（配列の4番目）- グループID
       tableName = values[i][15]; // Q列（配列の15番目）- テーブル名
+      giftUrl = values[i][16]; // R列（配列の16番目）- オンライン引き出物URL
+
+      // LINE IDを取得
+      if (lineIdColumnIndex !== -1) {
+        lineUserId = sheet.getRange(i + 2, lineIdColumnIndex + 1).getValue();
+      }
 
       // L列（12列目）にtrueを書き込む（出席登録）
       sheet.getRange(i + 2, 12).setValue(true);
@@ -152,7 +171,13 @@ function doPost(e) {
   }
 
   var result = found
-    ? { status: "success", companionIds: companionIds, tableName: tableName }
+    ? {
+        status: "success",
+        companionIds: companionIds,
+        tableName: tableName,
+        lineUserId: lineUserId,
+        giftUrl: giftUrl
+      }
     : { status: "not found" };
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }

@@ -122,6 +122,8 @@ export default function Home() {
       if (response.data.status === 'success') {
         setStatus('success');
         const tableName = response.data.tableName;
+        const lineUserId = response.data.lineUserId;
+        const giftUrl = response.data.giftUrl;
 
         let successMessage = `成功: ${displayName} の出席が記録されました${givenOkurumadai !== undefined ?
           (givenOkurumadai ? '（お車代渡し済み）' : '（お車代なし）') : ''}`;
@@ -139,6 +141,21 @@ export default function Home() {
         }
 
         setMessage(successMessage);
+
+        // LINE IDがある場合はメッセージを送信
+        if (lineUserId && guestName) {
+          try {
+            await axios.post('/api/send-line-message', {
+              lineUserId,
+              guestName,
+              giftUrl,
+            });
+            console.log('LINE message sent successfully');
+          } catch (error) {
+            console.error('Failed to send LINE message:', error);
+            // エラーが発生してもユーザーには成功メッセージを表示（LINEメッセージ送信失敗は致命的ではない）
+          }
+        }
       } else {
         setStatus('not-found');
         setMessage(`エラー: IDが見つかりませんでした (${displayName})`);
