@@ -94,6 +94,11 @@ function doPost(e) {
   if (data.action === 'getQRCode') {
     return getQRCodeByLineId(data, SPREADSHEET_ID, SHEET_NAME);
   }
+
+  // 引き出物URL取得リクエストの処理
+  if (data.action === 'getGiftUrl') {
+    return getGiftUrlByLineId(data, SPREADSHEET_ID, SHEET_NAME);
+  }
   
   // 既存のkazasu処理
   var id = data.id;
@@ -384,6 +389,84 @@ function getQRCodeByLineId(data, spreadsheetId, sheetName) {
       message: 'No guest found with this LINE ID'
     })).setMimeType(ContentService.MimeType.JSON);
     
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// LINE IDで引き出物URLを検索して返す
+function getGiftUrlByLineId(data, spreadsheetId, sheetName) {
+  try {
+    var lineId = data.lineId;
+
+    if (!lineId) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'LINE ID is required'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var sheet = SpreadsheetApp.openById(spreadsheetId).getSheetByName(sheetName);
+
+    // ヘッダー行を取得して列のインデックスを特定
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var lineIdColumn = -1;
+    var guestNameColumn = -1;
+
+    // LINE ID列と名前列を探す
+    for (var i = 0; i < headers.length; i++) {
+      var header = headers[i].toString().toLowerCase();
+      // LINE ID列を検索
+      if (header === 'line_id' || header === 'lineid' || header === 'lineユーザーid' || header === 'lineuserid') {
+        lineIdColumn = i + 1;
+      }
+      // 名前列を検索
+      if (i === 1) { // B列（2列目）は名前
+        guestNameColumn = i + 1;
+      }
+    }
+
+    if (lineIdColumn === -1) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'LINE ID column not found in spreadsheet'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // データを検索
+    var dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn());
+    var values = dataRange.getValues();
+
+    for (var i = 0; i < values.length; i++) {
+      var rowLineId = values[i][lineIdColumn - 1];
+      if (rowLineId && rowLineId.toString() === lineId) {
+        var guestName = values[i][guestNameColumn - 1]; // B列（名前）
+        var giftUrl = values[i][17]; // R列（18列目）
+
+        if (giftUrl) {
+          return ContentService.createTextOutput(JSON.stringify({
+            status: 'success',
+            giftUrl: giftUrl.toString(),
+            guestName: guestName.toString()
+          })).setMimeType(ContentService.MimeType.JSON);
+        } else {
+          return ContentService.createTextOutput(JSON.stringify({
+            status: 'no_url',
+            message: 'Gift URL not found for this guest',
+            guestName: guestName.toString()
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'not_found',
+      message: 'No guest found with this LINE ID'
+    })).setMimeType(ContentService.MimeType.JSON);
+
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({
       status: 'error',

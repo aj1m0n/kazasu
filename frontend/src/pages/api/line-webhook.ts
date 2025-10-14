@@ -104,6 +104,31 @@ async function getQRCodeFromSpreadsheet(userId: string) {
   }
 }
 
+async function getGiftUrlFromSpreadsheet(userId: string) {
+  if (!GAS_URL) {
+    throw new Error('GAS_URL is not configured');
+  }
+
+  try {
+    const response = await axios.post(
+      GAS_URL,
+      {
+        action: 'getGiftUrl',
+        lineId: userId,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get gift URL from spreadsheet:', error);
+    throw error;
+  }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -153,7 +178,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           // 何も返信せずに正常終了
           return res.status(200).json({ message: 'OK' });
         }
-        
+
+        // 「引き出物」リクエストの処理
+        if (message.text === '引き出物' || message.text === '引出物') {
+          try {
+            const giftData = await getGiftUrlFromSpreadsheet(userId);
+
+            if (giftData.status === 'success') {
+              const messageText = `${giftData.guestName}様
+
+オンライン引き出物のURLはこちらです🎁
+
+${giftData.giftUrl}
+
+下記のURLより、お好みの商品をお選びください。
+引き菓子・縁起物を含む三品の代わりに、アップグレードした一品をお選びいただくことも可能でございます。`;
+
+              await replyTextMessage(replyToken, messageText);
+            } else if (giftData.status === 'no_url') {
+              await replyTextMessage(replyToken, `${giftData.guestName}様\n\nオンライン引き出物のURLは後日、こちらのLINEよりご共有させていただきます。\n今しばらくお待ちくださいませ。`);
+            } else if (giftData.status === 'not_found') {
+              await replyTextMessage(replyToken, 'お客様の情報が見つかりませんでした。\nお手数ですが、お名前をお教えいただけますでしょうか。');
+            } else {
+              await replyTextMessage(replyToken, 'エラーが発生しました。もう一度お試しください。');
+            }
+          } catch (error) {
+            console.error('Failed to get gift URL:', error);
+            await replyTextMessage(replyToken, 'エラーが発生しました。もう一度お試しください。');
+          }
+          return res.status(200).json({ message: 'OK' });
+        }
+
         // QRコードリクエストの処理
         if (message.text === 'QRコード' || message.text === 'qrcode' || message.text === 'QR') {
           try {
