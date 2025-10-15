@@ -187,11 +187,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (giftData.status === 'success') {
               const messageText = `${giftData.guestName}様
 
-オンライン引き出物のURLはこちらです🎁
+オンライン引き出物のURLはこちらです、お好みの商品をお選びください🎁
 
 ${giftData.giftUrl}
 
-下記のURLより、お好みの商品をお選びください。
 引き菓子・縁起物を含む三品の代わりに、アップグレードした一品をお選びいただくことも可能でございます。`;
 
               await replyTextMessage(replyToken, messageText);
